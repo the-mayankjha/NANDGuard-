@@ -88,34 +88,53 @@ class DeviceCard(QFrame):
         
         # Professional Disk Indicator with Icon
         self.icon_frame = QFrame()
-        self.icon_frame.setFixedSize(36, 36)
+        self.icon_frame.setFixedSize(48, 48)
         self.icon_frame.setStyleSheet("""
             QFrame {
                 background-color: #2c313a;
-                border-radius: 18px;
+                border-radius: 24px;
                 border: 1px solid #3e4451;
             }
         """)
         icon_inner_layout = QVBoxLayout(self.icon_frame)
         icon_inner_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Disk Icon using logo.png
+        # Dynamic Icon Selection based on device type
         self.disk_icon = QLabel()
-        logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
-        if os.path.exists(logo_path):
-            pixmap = QPixmap(logo_path).scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            self.disk_icon.setPixmap(pixmap)
-        else:
+        icon_to_use = None
+        model_lower = model.lower()
+        
+        if "ssd" in model_lower:
+            icon_to_use = "ssd.png"
+        elif "pendrive" in model_lower or "usb" in model_lower:
+            icon_to_use = "pendrive.png"
+        elif "generic" in model_lower:
+            icon_to_use = None # Use CD Emoji for generic as requested
+            
+        icon_loaded = False
+        if icon_to_use:
+            img_path = os.path.join(os.path.dirname(__file__), icon_to_use)
+            if os.path.exists(img_path):
+                pixmap = QPixmap(img_path).scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                self.disk_icon.setPixmap(pixmap)
+                icon_loaded = True
+
+        if not icon_loaded:
             self.disk_icon.setText("💿")
-            self.disk_icon.setStyleSheet("font-size: 18px; background: transparent; border: none;")
+            self.disk_icon.setStyleSheet("font-size: 24px; background: transparent; border: none;")
         
         icon_inner_layout.addWidget(self.disk_icon, 0, Qt.AlignmentFlag.AlignCenter)
         
         # Status Dot Overlay
         self.icon_dot = QLabel(self.icon_frame)
-        self.icon_dot.setFixedSize(8, 8)
-        self.icon_dot.move(24, 24)
-        self.icon_dot.setStyleSheet(f"background-color: {'#00ffff' if 'bar_color' not in locals() else bar_color}; border-radius: 4px; border: 1px solid #21252b;")
+        self.icon_dot.setFixedSize(10, 10)
+        self.icon_dot.move(34, 34)
+        # Fixed locals() check for bar_color
+        dot_color = "#00ffff"
+        if health_score < 40: dot_color = "#ff3c3c"
+        elif health_score < 75: dot_color = "#ffaa00"
+        
+        self.icon_dot.setStyleSheet(f"background-color: {dot_color}; border-radius: 4px; border: 1px solid #21252b;")
         
         info_layout = QVBoxLayout()
         info_layout.setSpacing(2)
