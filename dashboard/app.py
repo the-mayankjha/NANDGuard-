@@ -5,7 +5,6 @@ try:
 except ImportError:
     HAS_TKINTER = False
 
-import threading
 import time
 import os
 import joblib
@@ -29,7 +28,6 @@ class FlashSentinelApp:
         if not HAS_TKINTER:
             raise ImportError("Tkinter not available for GUI mode.")
         self.root = root
-        # ... (rest of GUI initialization remains same, but I'll provide truncated version for brevity in this tool call)
         self.root.title("NANDGuard – Smart Storage Health Monitor")
         self.root.geometry("900x700")
         self.style = ttk.Style()
@@ -56,10 +54,7 @@ class FlashSentinelApp:
     def setup_ui(self):
         try:
             self.root.configure(bg="#222222")
-            
-            # Style Configuration
             style = ttk.Style()
-            # 'clam' is often more consistent across Linux distributions
             try:
                 if 'clam' in style.theme_names():
                     style.theme_use('clam')
@@ -73,7 +68,7 @@ class FlashSentinelApp:
             
             style.configure("TFrame", background="#222222")
             style.configure("TLabel", background="#222222", foreground="white", font=font_main)
-            style.configure("Header.TLabel", font=font_header)
+            style.configure("Header.TLabel", font=font_header, foreground="#ffffff")
             style.configure("Horizontal.TProgressbar", thickness=10, background="#007bff")
         except Exception as e:
             print(f"Warning: GUI Styling error: {e}")
@@ -97,7 +92,6 @@ class FlashSentinelApp:
         # Recommendations Box
         self.recs_frame = tk.Frame(self.root, bg="#1a1a1a", bd=1, relief="flat")
         self.recs_frame.pack(fill="x", padx=40, pady=10)
-        
         self.recs_text = tk.Text(self.recs_frame, bg="#1a1a1a", fg="white", font=("Inter", 11), 
                                 relief="flat", borderwidth=0, padx=20, pady=20, height=6)
         self.recs_text.pack(fill="x")
@@ -108,16 +102,12 @@ class FlashSentinelApp:
         
         self.risk_label = ttk.Label(stats_frame, text="Risk Level: --")
         self.risk_label.grid(row=0, column=0, pady=5)
-        
         self.rul_label = ttk.Label(stats_frame, text="RUL: --")
         self.rul_label.grid(row=1, column=0, pady=5)
-        
         self.status_label = ttk.Label(stats_frame, text="Status: --")
         self.status_label.grid(row=2, column=0, pady=5)
-        
         self.anomaly_label = ttk.Label(stats_frame, text="Anomaly: --")
         self.anomaly_label.grid(row=3, column=0, pady=5)
-        
         self.source_label = ttk.Label(stats_frame, text="Source: --", font=("Inter", 10, "bold"))
         self.source_label.grid(row=4, column=0, pady=5)
 
@@ -127,14 +117,14 @@ class FlashSentinelApp:
         self.last_update_label = ttk.Label(stats_frame, text="Update: --", font=("Inter", 10, "italic"), foreground="#888888")
         self.last_update_label.grid(row=5, column=0, pady=10)
 
-        # Start continuous monitoring thread
+        # Start continuous monitoring ONLY after everything is set up
         self.monitoring = True
-        threading.Thread(target=self.monitor_loop, daemon=True).start()
+        self.root.after(30000, self.monitor_loop)
 
     def monitor_loop(self):
-        while self.monitoring:
-            self.root.after(0, self.update_dashboard)
-            time.sleep(30) # Refresh every 30s
+        if self.monitoring:
+            self.update_dashboard()
+            self.root.after(30000, self.monitor_loop)
 
     def refresh_devices(self):
         devices = detect_devices()
@@ -163,20 +153,17 @@ class FlashSentinelApp:
             else:
                 self.error_log_label.config(text=f"LOG: {error_msg}")
         else:
-            self.error_log_label.config(text="LOG: Device lacks SMART support. Using synthetic simulator.")
+            reason = device.get('smart_error', 'Unknown reason')
+            self.error_log_label.config(text=f"LOG: Hardware access blocked ({reason}). Using simulator.")
 
         if not metrics:
             metrics = self.get_dummy_metrics()
         
         if not self.models: return
-        
         results = self.get_results(metrics)
         
-        # Update Health Score & Bar
         self.score_label.config(text=f"{results['health']['score']}%")
         self.score_bar['value'] = results['health']['score']
-        
-        # Update Info Labels
         self.risk_label.config(text=f"Risk Level: {results['health']['risk_level']}")
         self.rul_label.config(text=f"RUL: {int(results['health']['estimated_days'])} days")
         self.status_label.config(text=f"Status: {results['status']}")
@@ -184,7 +171,6 @@ class FlashSentinelApp:
         self.source_label.config(text=f"Source: {source_text}", foreground=source_color)
         self.last_update_label.config(text=f"Update: {time.strftime('%H:%M:%S')}")
         
-        # Update Recommendations
         self.recs_text.config(state="normal")
         self.recs_text.delete(1.0, tk.END)
         for r in results['recs']: 
@@ -226,20 +212,17 @@ def run_cli_mode():
 
     for d in devices:
         print(f"\nAnalyzing: {d['path']} ({d['mountpoint']})")
-        metrics = parse_smart_output(d['path']) if d['has_smart'] else {'Power_On_Hours': 5000, 'Wear_Leveling_Count': 20, 'Temperature': 40, 'Reallocated_Sector_Ct': 0, 'Media_Errors': 0, 'Host_Writes': 10000, 'Write_Amplification': 1.5, 'Bad_Block_Count': 0}
+        metrics = parse_smart_output(d['path'])[0] if d['has_smart'] else {'Power_On_Hours': 5000, 'Wear_Leveling_Count': 20, 'Temperature': 40, 'Reallocated_Sector_Ct': 0, 'Media_Errors': 0, 'Host_Writes': 10000, 'Write_Amplification': 1.5, 'Bad_Block_Count': 0}
         
         features = engineer_features(metrics)
         rul_pred = models['rul'].predict(features)[0]
         status_pred = models['classifier'].predict(features)[0]
         anomaly_pred = models['anomaly'].predict(features)[0]
-        
         probas = models['classifier'].predict_proba(features)[0]
         classes = models['classifier'].classes_
         failure_prob = sum(probas[i] for i, c in enumerate(classes) if c in ['Critical', 'Degrading'])
-        
         health = calculate_health_score(rul_pred, failure_prob, metrics.get('Wear_Leveling_Count', 0), anomaly_pred)
         recs = generate_recommendations(metrics, health)
-        
         print(f"Health Score: {health['score']}% ({health['risk_level']})")
         print(f"Est. Life: {health['estimated_days']} days")
         print(f"Status: {status_pred} | Anomaly: {'DETECTED' if anomaly_pred == -1 else 'No'}")
@@ -250,10 +233,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--cli", action="store_true", help="Run in CLI mode")
     args = parser.parse_args()
-
     if args.cli or not HAS_TKINTER:
-        if not HAS_TKINTER:
-            print("Tkinter not found. Falling back to CLI mode...")
         run_cli_mode()
     else:
         root = tk.Tk()
