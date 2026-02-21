@@ -1,0 +1,6 @@
+psutil
+pandas
+scikit-learn
+joblib
+xgboost
+matplotlib
