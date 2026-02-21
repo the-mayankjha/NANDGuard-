@@ -155,7 +155,7 @@ class FlashSentinelApp:
         if device['has_smart']:
             metrics, error_msg = parse_smart_output(device['path'], dev_type=device.get('dev_type'))
             if metrics:
-                source_text = "LIVE (Hardware)"
+                source_text = f"LIVE ({metrics.get('Source', 'Hardware')})"
                 source_color = "#00ff00"
                 self.error_log_label.config(text="")
             else:
