@@ -12,23 +12,23 @@ graph TD
     end
 
     subgraph "Telemetry Layer (telemetry/)"
-        DD["device_detector.py<br/>(smartctl --scan)"]
-        NC["mac_nvme (Native C)<br/>(Direct IOKit / Stats)"]
-        SR["smart_reader.py<br/>(Unified Orchestrator)"]
-        SC["smartctl<br/>(Fallback / macOS Fix)"]
-        PF["performance_fallback.py<br/>(Simulator)"]
+        DD["Device Discovery<br/>(device_detector.py)"]
+        NC["Native Apple Telemetry<br/>(mac_nvme.c)"]
+        SR["Unified Orchestration<br/>(smart_reader.py)"]
+        SC["SMART Fallback<br/>(smartctl)"]
+        PF["Performance Simulation<br/>(performance_fallback.py)"]
     end
 
     subgraph "ML Pipeline (core/ & models/)"
-        FE["feature_engineering.py"]
-        HS["health_score.py"]
-        RE["recommendation_engine.py"]
-        Models["ML Models (.pkl)<br/>(RUL, Classifier, Anomaly)"]
+        FE["Feature Transformation<br/>(feature_engineering.py)"]
+        HS["Health Score Fusion<br/>(health_score.py)"]
+        RE["Actionable Recommendations<br/>(recommendation_engine.py)"]
+        Models["Predictive Inference<br/>(ML Models)"]
     end
 
     subgraph "UI Layer (dashboard/)"
-        App["app.py (Tkinter GUI)"]
-        Monitor["Monitoring Loop<br/>(root.after)"]
+        App["Health Dashboard<br/>(app.py)"]
+        Monitor["Real-time Monitoring<br/>(Monitoring Loop)"]
     end
 
     SSD --> DD
