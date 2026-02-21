@@ -53,9 +53,12 @@ graph TD
 
 ### 1. Telemetry Layer
 
-- **native/mac_nvme (Native C)**: A high-fidelity C component using `IOKit` to query Apple Silicon NVMe controllers directly. It includes a fallback mechanism to extract storage statistics from `IOBlockStorageDriver` if hardware SMART access is restricted.
-- **device_detector.py**: Uses `smartctl --scan` and `psutil` to identify physical drives and their native paths (e.g., `/dev/disk0` or `/dev/sda`).
-- **smart_reader.py**: Orchestrates telemetry collection. It prioritizes the **Native C Bridge** on macOS, falls back to `smartctl -a` (with support for Exit Code 4 common on Mac), and finally uses `performance_fallback.py` as a simulated data source.
+- **Native Apple Telemetry (`mac_nvme.c`)**:
+  - **IOKit Integration**: Communicates directly with the macOS I/O Registry using the `IOKit` framework to target `AppleANS3NVMeController` and `IONVMeBlockStorageDevice` services.
+  - **Direct Memory Access**: Attempts to retrieve the raw 512-byte NVMe SMART Log Page directly from the kernel-level "SMART Data" property, bypassing the need for external CLI parsing.
+  - **Kernel Stats Fallback**: If hardware SMART data is restricted, it queries the `IOBlockStorageDriver` for native `Statistics` (raw Bytes Read/Written), ensuring high-fidelity telemetry even under strict security policies.
+- **Device Discovery (`device_detector.py`)**: Uses `smartctl --scan` and `psutil` to identify physical drives and their native paths (e.g., `/dev/disk0` or `/dev/sda`).
+- **Unified Orchestration (`smart_reader.py`)**: Prioritizes the **Native C Bridge** for Apple Silicon, falls back to `smartctl -a` (handling macOS-specific warning codes), and triggers the **Synthetic Simulator** if no hardware is accessible.
 - **performance_fallback.py**: Collects OS-level performance metrics as a backup in case hardware-level SMART data is unavailable.
 
 ### 2. ML Pipeline & Core Logic
