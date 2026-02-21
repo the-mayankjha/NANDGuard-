@@ -118,8 +118,14 @@ class FlashSentinelApp:
         self.anomaly_label = ttk.Label(stats_frame, text="Anomaly: --")
         self.anomaly_label.grid(row=3, column=0, pady=5)
         
+        self.source_label = ttk.Label(stats_frame, text="Source: --", font=("Inter", 10, "bold"))
+        self.source_label.grid(row=4, column=0, pady=5)
+
+        self.error_log_label = ttk.Label(self.root, text="", font=("Inter", 9, "italic"), foreground="#ff4444")
+        self.error_log_label.pack(pady=5)
+        
         self.last_update_label = ttk.Label(stats_frame, text="Update: --", font=("Inter", 10, "italic"), foreground="#888888")
-        self.last_update_label.grid(row=4, column=0, pady=10)
+        self.last_update_label.grid(row=5, column=0, pady=10)
 
         # Start continuous monitoring thread
         self.monitoring = True
@@ -142,8 +148,27 @@ class FlashSentinelApp:
         idx = self.device_combo.current()
         if idx < 0: return
         device = self.device_list[idx]
-        metrics = parse_smart_output(device['path']) if device['has_smart'] else self.get_dummy_metrics()
-        if not metrics or not self.models: return
+        
+        metrics = None
+        error_msg = None
+        source_text = "SIMULATED (Built-in)"
+        source_color = "#ffaa00"
+
+        if device['has_smart']:
+            metrics, error_msg = parse_smart_output(device['path'])
+            if metrics:
+                source_text = "LIVE (Hardware)"
+                source_color = "#00ff00"
+                self.error_log_label.config(text="")
+            else:
+                self.error_log_label.config(text=f"LOG: {error_msg}")
+        else:
+            self.error_log_label.config(text="LOG: Device lacks SMART support. Using synthetic simulator.")
+
+        if not metrics:
+            metrics = self.get_dummy_metrics()
+        
+        if not self.models: return
         
         results = self.get_results(metrics)
         
@@ -156,6 +181,7 @@ class FlashSentinelApp:
         self.rul_label.config(text=f"RUL: {int(results['health']['estimated_days'])} days")
         self.status_label.config(text=f"Status: {results['status']}")
         self.anomaly_label.config(text=f"Anomaly: {'DETECTED' if results['anomaly'] == -1 else 'No'}")
+        self.source_label.config(text=f"Source: {source_text}", foreground=source_color)
         self.last_update_label.config(text=f"Update: {time.strftime('%H:%M:%S')}")
         
         # Update Recommendations
