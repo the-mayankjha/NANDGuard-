@@ -5,72 +5,78 @@ import shutil
 import re
 
 def detect_devices():
-    """Detects connected storage devices and checks for SMART support."""
+    """Detects physical storage devices using smartctl --scan."""
     devices = []
-    partitions = psutil.disk_partitions()
-    current_os = platform.system()
+    seen_paths = set()
     
-    seen_disks = set()
-    
-    for p in partitions:
-        device_path = p.device
-        if not device_path: continue
-        
-        base_device = device_path
-        
-        if current_os == "Darwin": # macOS
-            if '/dev/disk' in device_path:
-                # Correctly strip partition suffixes (e.g., /dev/disk3s1 -> /dev/disk3)
-                # We look for 's' followed by digits at the end of the disk name
-                base_device = re.sub(r's\d+.*', '', device_path)
-        elif current_os == "Linux":
-            # For Linux, we want e.g. /dev/sda instead of /dev/sda1
-            if '/dev/sd' in device_path or '/dev/nvme' in device_path:
-                # Remove partition number (e.g. /dev/sda1 -> /dev/sda, /dev/nvme0n1p1 -> /dev/nvme0n1)
-                match = re.search(r'(/dev/(sd[a-z]|nvme[0-9]n[0-9]))', device_path)
-                if match:
-                    base_device = match.group(1)
-        elif current_os == "Windows":
-            # Windows is trickier for physical disk mapping. 
-            # For the prototype, we can list logical drives and use smartctl on them (it often works)
-            # or try to map to PhysicalDrive via wmic if we needed more precision.
-            base_device = device_path.split(':')[0] + ":" # e.g. "C:"
-            
-        if base_device in seen_disks:
-            continue
-        seen_disks.add(base_device)
-        
-        has_smart = False
-        smart_error = "smartmontools not installed"
-        if shutil.which('smartctl'):
-            try:
-                # Try running smartctl -i to check for support
-                res = subprocess.run(['smartctl', '-i', base_device], capture_output=True, text=True)
-                if res.returncode == 0:
-                    out = res.stdout.lower()
-                    # Apple Silicon Macs often don't show "SMART support is: Enabled" 
-                    # but they are definitely SMART capable if they are the internal SSD.
-                    if "smart support is:" in out or "apple ssd" in out or "nvme" in out or "ans2" in out:
-                        has_smart = True
+    # 1. Primary discovery: smartctl --scan
+    if shutil.which('smartctl'):
+        try:
+            res = subprocess.run(['smartctl', '--scan'], capture_output=True, text=True)
+            if res.returncode == 0:
+                for line in res.stdout.splitlines():
+                    if line.startswith('#') or not line.strip():
+                        continue
+                    
+                    # Line format: /dev/sda -d ata # ... or IOService:/... -d nvme
+                    match = re.search(r'^(\S+)\s+(-d\s+\S+)', line)
+                    if match:
+                        path, dev_type = match.groups()
+                        
+                        # Fix: Split dev_type so it passes as separate args to subprocess
+                        scan_cmd = ['smartctl', '-i', path] + dev_type.split()
+                        res_i = subprocess.run(scan_cmd, capture_output=True, text=True)
+                        
+                        has_smart = False
                         smart_error = None
-                    else:
-                        smart_error = "Drive does not report SMART support in the expected format"
-                else:
-                    err = res.stderr.strip() or f"Code {res.returncode}"
-                    if "Permission denied" in err or "root" in err.lower():
-                        smart_error = "PERMISSION DENIED: Run as root/sudo"
-                    else:
-                        smart_error = f"Probe failed: {err}"
-            except Exception as e:
-                smart_error = f"Error: {str(e)}"
-        
-        devices.append({
-            'path': base_device,
-            'mountpoint': p.mountpoint,
-            'fstype': p.fstype,
-            'has_smart': has_smart,
-            'smart_error': smart_error
-        })
+                        model = "Unknown Model"
+                        
+                        if res_i.returncode in [0, 4]: # 4 is often a checksum error but data is there
+                            out = res_i.stdout.lower()
+                            has_smart = True if ("smart support is:" in out or "apple ssd" in out or "nvme" in out or "ans2" in out) else False
+                            
+                            # Extract model
+                            model_match = re.search(r'Model Number:\s+(.*)', res_i.stdout)
+                            if not model_match:
+                                model_match = re.search(r'Device Model:\s+(.*)', res_i.stdout)
+                            if model_match:
+                                model = model_match.group(1).strip()
+                        else:
+                            smart_error = f"Probe failed (Code {res_i.returncode})"
+                            
+                        devices.append({
+                            'path': path,
+                            'dev_type': dev_type,
+                            'model': model,
+                            'has_smart': has_smart,
+                            'smart_error': smart_error,
+                            'mountpoint': '/' # Default to root for physical disks
+                        })
+                        seen_paths.add(path)
+        except Exception as e:
+            print(f"Error scanning devices: {e}")
+
+    # 2. Secondary discovery (psutil) for devices not found by scan (e.g. ones that don't support smartctl well)
+    try:
+        partitions = psutil.disk_partitions()
+        for p in partitions:
+            if not p.device or p.device in seen_paths:
+                continue
+            
+            # Basic validation to avoid virtual disks
+            if 'loop' in p.device or 'ram' in p.device:
+                continue
+                
+            devices.append({
+                'path': p.device,
+                'dev_type': "",
+                'model': "Generic Disk",
+                'has_smart': False,
+                'smart_error': "Not found in smartctl scan",
+                'mountpoint': p.mountpoint
+            })
+    except Exception:
+        pass
             
     return devices
 

@@ -1,10 +1,14 @@
 import subprocess
 import re
 
-def parse_smart_output(device_path):
+def parse_smart_output(device_path, dev_type=None):
     """Parses smartctl -a output into a dictionary of metrics, supporting SATA and NVMe."""
     try:
-        res = subprocess.run(['smartctl', '-a', device_path], capture_output=True, text=True)
+        cmd = ['smartctl', '-a', device_path]
+        if dev_type:
+            cmd.extend(dev_type.split())
+            
+        res = subprocess.run(cmd, capture_output=True, text=True)
         
         if res.returncode != 0:
             error_msg = res.stderr.strip() if res.stderr else f"Exit code {res.returncode}"

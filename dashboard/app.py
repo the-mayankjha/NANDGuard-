@@ -129,7 +129,15 @@ class FlashSentinelApp:
     def refresh_devices(self):
         devices = detect_devices()
         self.device_list = devices
-        self.device_combo['values'] = [f"{d['path']} ({d['mountpoint']})" for d in devices]
+        # Show model and path in dropdown, truncating long paths for UI
+        display_values = []
+        for d in devices:
+            p = d['path']
+            if len(p) > 30:
+                p = p[:15] + "..." + p[-15:]
+            display_values.append(f"{d['model']} ({p})")
+        
+        self.device_combo['values'] = display_values
         if devices:
             self.device_combo.current(0)
             self.update_dashboard()
@@ -145,7 +153,7 @@ class FlashSentinelApp:
         source_color = "#ffaa00"
 
         if device['has_smart']:
-            metrics, error_msg = parse_smart_output(device['path'])
+            metrics, error_msg = parse_smart_output(device['path'], dev_type=device.get('dev_type'))
             if metrics:
                 source_text = "LIVE (Hardware)"
                 source_color = "#00ff00"
