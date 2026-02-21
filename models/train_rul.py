@@ -6,7 +6,7 @@ from sklearn.metrics import mean_absolute_error
 import os
 
 def train_rul_model():
-    data_path = 'smart_storage_monitor/data/simulated_smart_dataset.csv'
+    data_path = 'data/simulated_smart_dataset.csv'
     if not os.path.exists(data_path):
         print("Dataset not found. Run synthetic_generator.py first.")
         return
@@ -31,7 +31,7 @@ def train_rul_model():
     mae = mean_absolute_error(y_test, predictions)
     print(f"RUL Model trained. MAE: {mae:.2f} days")
     
-    model_path = 'smart_storage_monitor/models/rul_model.pkl'
+    model_path = 'models/rul_model.pkl'
     joblib.dump(model, model_path)
     print(f"Model saved to {model_path}")
 

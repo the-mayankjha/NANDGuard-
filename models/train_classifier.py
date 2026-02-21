@@ -6,7 +6,7 @@ from sklearn.metrics import classification_report
 import os
 
 def train_classifier_model():
-    data_path = 'smart_storage_monitor/data/simulated_smart_dataset.csv'
+    data_path = 'data/simulated_smart_dataset.csv'
     if not os.path.exists(data_path):
         print("Dataset not found. Run synthetic_generator.py first.")
         return
@@ -30,7 +30,7 @@ def train_classifier_model():
     print("Health Classifier Report:")
     print(classification_report(y_test, predictions))
     
-    model_path = 'smart_storage_monitor/models/classifier_model.pkl'
+    model_path = 'models/classifier_model.pkl'
     joblib.dump(model, model_path)
     print(f"Model saved to {model_path}")
 

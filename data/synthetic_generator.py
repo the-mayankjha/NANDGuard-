@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 
-def generate_synthetic_data(num_samples=6000, output_path='smart_storage_monitor/data/simulated_smart_dataset.csv'):
+def generate_synthetic_data(num_samples=6000, output_path='data/simulated_smart_dataset.csv'):
     np.random.seed(42)
     
     # Features

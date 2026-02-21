@@ -4,7 +4,7 @@ from sklearn.ensemble import IsolationForest
 import os
 
 def train_anomaly_model():
-    data_path = 'smart_storage_monitor/data/simulated_smart_dataset.csv'
+    data_path = 'data/simulated_smart_dataset.csv'
     if not os.path.exists(data_path):
         print("Dataset not found. Run synthetic_generator.py first.")
         return
@@ -22,7 +22,7 @@ def train_anomaly_model():
     model = IsolationForest(contamination=0.05, random_state=42)
     model.fit(X)
     
-    model_path = 'smart_storage_monitor/models/anomaly_model.pkl'
+    model_path = 'models/anomaly_model.pkl'
     joblib.dump(model, model_path)
     print(f"Anomaly detection model saved to {model_path}")
 

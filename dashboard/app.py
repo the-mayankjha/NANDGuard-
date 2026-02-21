@@ -42,41 +42,93 @@ class FlashSentinelApp:
     def load_models(self):
         models_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models")
         try:
-            return {
+            models = {
                 'rul': joblib.load(os.path.join(models_dir, "rul_model.pkl")),
                 'classifier': joblib.load(os.path.join(models_dir, "classifier_model.pkl")),
                 'anomaly': joblib.load(os.path.join(models_dir, "anomaly_model.pkl"))
             }
-        except Exception:
+            print(f"Successfully loaded models from {models_dir}")
+            return models
+        except Exception as e:
+            print(f"CRITICAL: Failed to load models: {e}")
             return None
 
     def setup_ui(self):
-        # (Simplified for the sake of the edit, but technically I should keep the original logic)
+        try:
+            self.root.configure(bg="#222222")
+            
+            # Style Configuration
+            style = ttk.Style()
+            # 'clam' is often more consistent across Linux distributions
+            try:
+                if 'clam' in style.theme_names():
+                    style.theme_use('clam')
+                else:
+                    style.theme_use('default')
+            except Exception:
+                pass
+
+            font_main = ("Inter", 12) if "Inter" in self.root.tk.call("font", "families") else ("Helvetica", 12)
+            font_header = ("Inter", 32, "bold") if "Inter" in self.root.tk.call("font", "families") else ("Helvetica", 32, "bold")
+            
+            style.configure("TFrame", background="#222222")
+            style.configure("TLabel", background="#222222", foreground="white", font=font_main)
+            style.configure("Header.TLabel", font=font_header)
+            style.configure("Horizontal.TProgressbar", thickness=10, background="#007bff")
+        except Exception as e:
+            print(f"Warning: GUI Styling error: {e}")
+        
+        # Header / Dropdown
         header_frame = ttk.Frame(self.root)
-        header_frame.pack(fill="x", padx=20, pady=20)
+        header_frame.pack(fill="x", padx=40, pady=(20, 0))
         self.device_var = tk.StringVar()
-        self.device_combo = ttk.Combobox(header_frame, textvariable=self.device_var, state="readonly", width=30)
-        self.device_combo.pack(side="right", padx=10)
+        self.device_combo = ttk.Combobox(header_frame, textvariable=self.device_var, state="readonly", width=40)
+        self.device_combo.pack(side="right")
+        self.device_combo.bind("<<ComboboxSelected>>", lambda e: self.update_dashboard())
+
+        # Score Display
+        self.score_label = ttk.Label(self.root, text="--%", font=("Inter", 48, "bold"), foreground="white")
+        self.score_label.pack(pady=(40, 10))
         
-        main_frame = ttk.Frame(self.root)
-        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
-        self.score_label = ttk.Label(main_frame, text="--%", font=("Helvetica", 24))
-        self.score_label.pack()
-        self.score_bar = ttk.Progressbar(main_frame, length=300)
-        self.score_bar.pack()
-        self.recs_text = tk.Text(main_frame, height=10)
-        self.recs_text.pack(fill="both")
+        # Progress Bar
+        self.score_bar = ttk.Progressbar(self.root, length=400, mode='determinate', style="Horizontal.TProgressbar")
+        self.score_bar.pack(pady=10)
+
+        # Recommendations Box
+        self.recs_frame = tk.Frame(self.root, bg="#1a1a1a", bd=1, relief="flat")
+        self.recs_frame.pack(fill="x", padx=40, pady=10)
         
-        self.risk_label = ttk.Label(main_frame, text="Risk: --")
-        self.risk_label.pack()
-        self.rul_label = ttk.Label(main_frame, text="RUL: --")
-        self.rul_label.pack()
-        self.status_label = ttk.Label(main_frame, text="Status: --")
-        self.status_label.pack()
-        self.anomaly_label = ttk.Label(main_frame, text="Anomaly: --")
-        self.anomaly_label.pack()
-        self.last_update_label = ttk.Label(main_frame, text="Update: --")
-        self.last_update_label.pack()
+        self.recs_text = tk.Text(self.recs_frame, bg="#1a1a1a", fg="white", font=("Inter", 11), 
+                                relief="flat", borderwidth=0, padx=20, pady=20, height=6)
+        self.recs_text.pack(fill="x")
+
+        # Stats Grid
+        stats_frame = ttk.Frame(self.root)
+        stats_frame.pack(pady=20)
+        
+        self.risk_label = ttk.Label(stats_frame, text="Risk Level: --")
+        self.risk_label.grid(row=0, column=0, pady=5)
+        
+        self.rul_label = ttk.Label(stats_frame, text="RUL: --")
+        self.rul_label.grid(row=1, column=0, pady=5)
+        
+        self.status_label = ttk.Label(stats_frame, text="Status: --")
+        self.status_label.grid(row=2, column=0, pady=5)
+        
+        self.anomaly_label = ttk.Label(stats_frame, text="Anomaly: --")
+        self.anomaly_label.grid(row=3, column=0, pady=5)
+        
+        self.last_update_label = ttk.Label(stats_frame, text="Update: --", font=("Inter", 10, "italic"), foreground="#888888")
+        self.last_update_label.grid(row=4, column=0, pady=10)
+
+        # Start continuous monitoring thread
+        self.monitoring = True
+        threading.Thread(target=self.monitor_loop, daemon=True).start()
+
+    def monitor_loop(self):
+        while self.monitoring:
+            self.root.after(0, self.update_dashboard)
+            time.sleep(30) # Refresh every 30s
 
     def refresh_devices(self):
         devices = detect_devices()
@@ -94,11 +146,24 @@ class FlashSentinelApp:
         if not metrics or not self.models: return
         
         results = self.get_results(metrics)
+        
+        # Update Health Score & Bar
         self.score_label.config(text=f"{results['health']['score']}%")
         self.score_bar['value'] = results['health']['score']
+        
+        # Update Info Labels
         self.risk_label.config(text=f"Risk Level: {results['health']['risk_level']}")
+        self.rul_label.config(text=f"RUL: {int(results['health']['estimated_days'])} days")
+        self.status_label.config(text=f"Status: {results['status']}")
+        self.anomaly_label.config(text=f"Anomaly: {'DETECTED' if results['anomaly'] == -1 else 'No'}")
+        self.last_update_label.config(text=f"Update: {time.strftime('%H:%M:%S')}")
+        
+        # Update Recommendations
+        self.recs_text.config(state="normal")
         self.recs_text.delete(1.0, tk.END)
-        for r in results['recs']: self.recs_text.insert(tk.END, f"• {r}\n")
+        for r in results['recs']: 
+            self.recs_text.insert(tk.END, f"• {r}\n")
+        self.recs_text.config(state="disabled")
 
     def get_dummy_metrics(self):
         return {'Power_On_Hours': 5000, 'Wear_Leveling_Count': 20, 'Temperature': 40, 'Reallocated_Sector_Ct': 0, 'Media_Errors': 0, 'Host_Writes': 10000, 'Write_Amplification': 1.5, 'Bad_Block_Count': 0}
