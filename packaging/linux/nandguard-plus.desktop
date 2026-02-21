@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=NANDGuard+
+Comment=AI Storage Health Monitoring Utility
+Exec=/usr/bin/nandguard-plus
+Icon=/usr/share/pixmaps/nandguard-plus.png
+Terminal=false
+Categories=System;Monitor;
+X-GNOME-Autostart-enabled=true

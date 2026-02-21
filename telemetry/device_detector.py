@@ -41,6 +41,11 @@ def detect_devices():
                                 model_match = re.search(r'Device Model:\s+(.*)', res_i.stdout)
                             if model_match:
                                 model = model_match.group(1).strip()
+
+                            # Try to find /dev/disk name for consolidation
+                            dev_name_match = re.search(r'(/dev/disk\d+)', res_i.stdout)
+                            if dev_name_match:
+                                seen_paths.add(dev_name_match.group(1))
                         else:
                             smart_error = f"Probe failed (Code {res_i.returncode})"
                             
@@ -56,25 +61,37 @@ def detect_devices():
         except Exception as e:
             print(f"Error scanning devices: {e}")
 
-    # 2. Secondary discovery (psutil) for devices not found by scan (e.g. ones that don't support smartctl well)
+    # 2. Secondary discovery (psutil)
     try:
         partitions = psutil.disk_partitions()
         for p in partitions:
-            if not p.device or p.device in seen_paths:
+            if not p.device:
+                continue
+                
+            # Filter: Avoid virtual/ram disks
+            if any(x in p.device.lower() for x in ['loop', 'ram', 'dmg', 'null']):
                 continue
             
-            # Basic validation to avoid virtual disks
-            if 'loop' in p.device or 'ram' in p.device:
+            # macOS specific: Filter out sub-partitions and consolidate to base disks
+            # e.g. /dev/disk3s1 -> /dev/disk3
+            clean_path = p.device
+            if platform.system() == "Darwin" and "/dev/disk" in p.device:
+                base_match = re.search(r'(/dev/disk\d+)', p.device)
+                if base_match:
+                    clean_path = base_match.group(1)
+            
+            if clean_path in seen_paths:
                 continue
                 
             devices.append({
-                'path': p.device,
+                'path': clean_path,
                 'dev_type': "",
                 'model': "Generic Disk",
                 'has_smart': False,
                 'smart_error': "Not found in smartctl scan",
                 'mountpoint': p.mountpoint
             })
+            seen_paths.add(clean_path)
     except Exception:
         pass
             

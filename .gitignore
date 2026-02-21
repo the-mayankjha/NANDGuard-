@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Build Artifacts
+build/
+dist/
+*.spec
+NANDGuard+_1.0.0.dmg
+packaging/macos/dmg_staging/
+packaging/macos/raw.dmg
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
