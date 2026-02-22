@@ -10,6 +10,18 @@ fi
 
 CURRENT_VERSION=$(cat "$VERSION_FILE" | xargs)
 
+# Function to check if Docker daemon is running
+check_docker() {
+    if command -v docker >/dev/null 2>&1; then
+        if docker info >/dev/null 2>&1; then
+            return 0 # Docker is installed and running
+        else
+            return 1 # Docker is installed but daemon is not running
+        fi
+    fi
+    return 2 # Docker is not installed
+}
+
 # Function to increment SemVer (patch version)
 increment_version() {
     local v=$1
@@ -20,6 +32,9 @@ increment_version() {
 
 if [[ "$1" == "build" && "$2" == "nandguard" ]]; then
     NEW_VERSION=$(increment_version "$CURRENT_VERSION")
+    check_docker
+    DOCKER_STATUS=$?
+    
     echo "------------------------------------------"
     echo "🚀 Building NANDGuard+ v${NEW_VERSION}"
     echo "------------------------------------------"
@@ -37,15 +52,22 @@ if [[ "$1" == "build" && "$2" == "nandguard" ]]; then
 
     # 2. Linux Binary & Packaging
     echo "🐧 Building & Packaging for Linux..."
-    if [[ "$OSTYPE" == "darwin"* ]] && command -v docker >/dev/null 2>&1; then
+    if [[ "$OSTYPE" == "darwin"* ]] && [ $DOCKER_STATUS -eq 0 ]; then
         echo "🐳 Docker detected. Building Linux .deb inside container..."
-        docker build -t nandguard-builder-linux -f packaging/linux/Dockerfile . --quiet
+        BUILD_CMD="docker build"
+        if docker buildx version >/dev/null 2>&1; then
+            BUILD_CMD="docker buildx build --load"
+        fi
+        $BUILD_CMD -t nandguard-builder-linux -f packaging/linux/Dockerfile . --quiet
         docker run --rm -v "$(pwd):/src" -e VERSION="$NEW_VERSION" nandguard-builder-linux
         if [ $? -eq 0 ]; then
             echo "✅ Linux DEB created in drivers/linux/"
         else
             echo "❌ Linux Docker build failed."
         fi
+    elif [[ "$OSTYPE" == "darwin"* ]] && [ $DOCKER_STATUS -eq 1 ]; then
+        echo "⚠️  Docker daemon is not running. Skipping containerized Linux build."
+        echo "👉 Start Docker Desktop and try again for a native Linux DEB."
     else
         # Fallback to local build logic
         if [ ! -f "dist/nandguard/linux/NANDGuard+" ]; then
@@ -70,15 +92,22 @@ if [[ "$1" == "build" && "$2" == "nandguard" ]]; then
 
     # 3. Windows Binary & Packaging
     echo "🪟 Building & Packaging for Windows..."
-    if [[ "$OSTYPE" == "darwin"* ]] && command -v docker >/dev/null 2>&1; then
+    if [[ "$OSTYPE" == "darwin"* ]] && [ $DOCKER_STATUS -eq 0 ]; then
         echo "🐳 Docker detected. Building Windows .exe inside container..."
-        docker build -t nandguard-builder-windows -f packaging/windows/Dockerfile . --quiet
+        BUILD_CMD="docker build"
+        if docker buildx version >/dev/null 2>&1; then
+            BUILD_CMD="docker buildx build --load"
+        fi
+        $BUILD_CMD -t nandguard-builder-windows -f packaging/windows/Dockerfile . --quiet
         docker run --rm -v "$(pwd):/src" -e VERSION="$NEW_VERSION" nandguard-builder-windows
         if [ $? -eq 0 ]; then
             echo "✅ Windows EXE/ZIP created in drivers/windows/"
         else
             echo "❌ Windows Docker build failed."
         fi
+    elif [[ "$OSTYPE" == "darwin"* ]] && [ $DOCKER_STATUS -eq 1 ]; then
+        echo "⚠️  Docker daemon is not running. Skipping containerized Windows build."
+        echo "👉 Start Docker Desktop and try again for a native Windows EXE."
     else
         # Fallback to local build logic
         if [ ! -d "dist/nandguard/windows/NANDGuard+" ]; then

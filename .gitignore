@@ -8,8 +8,8 @@ venv/
 # Build Artifacts
 build/
 dist/
+drivers/
 *.spec
-NANDGuard+_1.0.0.dmg
 packaging/macos/dmg_staging/
 packaging/macos/raw.dmg
 
