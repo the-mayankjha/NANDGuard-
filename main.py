@@ -2,11 +2,101 @@ import os
 import subprocess
 import sys
 import platform
+import ctypes
+
+def is_admin():
+    """Check if the current process has administrative privileges."""
+    try:
+        if platform.system() == "Windows":
+            return ctypes.windll.shell32.IsUserAnAdmin()
+        else:
+            return os.getuid() == 0
+    except AttributeError:
+        return False
+
+def request_elevation():
+    """Relaunches the application with administrative privileges if necessary."""
+    if is_admin():
+        return True
+
+    print("\n[!] ELEVATION REQUIRED: This utility needs root privileges for hardware access.")
+    
+    # Get current script path and arguments
+    is_frozen = getattr(sys, 'frozen', False)
+    script_path = os.path.abspath(sys.argv[0])
+    args = sys.argv[1:]
+    
+    if platform.system() == "Darwin":
+        # macOS: Use osascript for a graphical password prompt
+        # For frozen apps, sys.executable is the binary itself
+        if is_frozen:
+            inner_cmd = f'\\"{sys.executable}\\" {" ".join(args)}'
+        else:
+            inner_cmd = f'{sys.executable} \\"{script_path}\\" {" ".join(args)}'
+            
+        cmd = f'do shell script "{inner_cmd}" with administrator privileges'
+        try:
+            subprocess.run(['osascript', '-e', cmd], check=True)
+            sys.exit(0)
+        except subprocess.CalledProcessError:
+            print("Elevation cancelled by user.")
+            return False
+            
+    elif platform.system() == "Linux":
+        # Linux: Try pkexec (graphical) or sudo (terminal)
+        exec_args = [sys.executable]
+        if not is_frozen:
+            exec_args.append(script_path)
+        exec_args.extend(args)
+        
+        if os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY'):
+            try:
+                subprocess.run(['pkexec'] + exec_args, check=True)
+                sys.exit(0)
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                pass
+        
+        # Fallback to sudo in terminal
+        try:
+            subprocess.run(['sudo'] + exec_args, check=True)
+            sys.exit(0)
+        except subprocess.CalledProcessError:
+            print("Elevation failed.")
+            return False
+            
+    return True
+
+def setup_environment():
+    """Expand PATH to ensure system tools like smartctl are discoverable."""
+    common_paths = [
+        "/usr/local/bin",
+        "/opt/homebrew/bin",
+        "/usr/sbin",
+        "/sbin",
+        "/bin",
+        "/usr/bin"
+    ]
+    current_path = os.environ.get("PATH", "")
+    for p in common_paths:
+        if p not in current_path:
+            current_path = f"{p}{os.pathsep}{current_path}"
+    os.environ["PATH"] = current_path
+    
+    # Also update for the current process
+    if platform.system() != "Windows":
+        sys.path.append("/usr/local/lib/python3.13/site-packages")
 
 def main():
     print("NANDGuard – Smart Storage Health Monitor")
     print("-----------------------------------------------")
     
+    # Expand PATH for hardware tool discovery
+    setup_environment()
+    
+    # Request elevation for hardware access
+    if not request_elevation():
+        print("Hardware access will be limited to non-root telemetry.")
+
     # Get the directory where main.py is located
     project_root = os.path.dirname(os.path.abspath(__file__))
     base_dir = project_root
@@ -64,6 +154,9 @@ def main():
     # Ensure project root is in PYTHONPATH so sub-scripts find packages
     env = os.environ.copy()
     env["PYTHONPATH"] = base_dir + os.pathsep + env.get("PYTHONPATH", "")
+    
+    # Also pass the updated PATH to the subprocess
+    env["PATH"] = os.environ["PATH"]
     
     subprocess.run(args, env=env)
 

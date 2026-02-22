@@ -9,7 +9,7 @@ if project_root not in sys.path:
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QStackedWidget, QSystemTrayIcon, QMenu, QLabel,
                              QScrollArea, QFrame)
-from PyQt6.QtGui import QIcon, QAction, QPixmap
+from PyQt6.QtGui import QIcon, QAction
 from PyQt6.QtCore import Qt, pyqtSlot
 
 from dashboard.qt_ui_components import SidebarButton, DeviceCard, CircularHealthGauge
@@ -38,30 +38,16 @@ class NANDGuardApp(QMainWindow):
         self.sidebar.setFixedWidth(200)
         self.sidebar.setStyleSheet("background-color: #21252b; border-right: 1px solid #3e4451;")
         sidebar_layout = QVBoxLayout(self.sidebar)
-        sidebar_layout.setContentsMargins(0, 20, 0, 15)
-        sidebar_layout.setSpacing(0)
-        
-        # Navigation Buttons Container
-        nav_container = QWidget()
-        nav_layout = QVBoxLayout(nav_container)
-        nav_layout.setContentsMargins(10, 20, 10, 20)
-        nav_layout.setSpacing(5)
+        sidebar_layout.setContentsMargins(10, 20, 10, 20)
         
         self.btn_dashboard = SidebarButton("Dashboard", active=True)
         self.btn_devices = SidebarButton("Devices")
         self.btn_settings = SidebarButton("Settings")
         
-        nav_layout.addWidget(self.btn_dashboard)
-        nav_layout.addWidget(self.btn_devices)
-        nav_layout.addWidget(self.btn_settings)
-        sidebar_layout.addWidget(nav_container)
-        
+        sidebar_layout.addWidget(self.btn_dashboard)
+        sidebar_layout.addWidget(self.btn_devices)
+        sidebar_layout.addWidget(self.btn_settings)
         sidebar_layout.addStretch()
-        
-        # Sidebar Footer
-        footer_lbl = QLabel("v1.0.0 Stable\n© 2026 NANDGuard")
-        footer_lbl.setStyleSheet("font-size: 10px; color: #5c6370; margin-left: 15px;")
-        sidebar_layout.addWidget(footer_lbl)
         
         main_layout.addWidget(self.sidebar)
         

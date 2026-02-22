@@ -1,76 +1,92 @@
-# NANDGuard System Architecture
+# NANDGuard+ System Architecture
 
-NANDGuard is an AI-powered storage health monitor. This document describes the system architecture and data flow.
+NANDGuard+ is a professional-grade storage health utility powered by advanced ML diagnostics. This document outlines the multi-layered architecture that enables real-time monitoring, root-level hardware access, and cross-platform distribution.
 
 ## Architecture Overview
 
 ```mermaid
 graph TD
-    subgraph "Hardware Layer"
-        SSD["SSD (NVMe / SATA)"]
-        OS["Operating System (macOS / Linux / Windows)"]
+    subgraph "Hardware & OS Layer"
+        SSD["Storage Media (NVMe / SATA)"]
+        OS["OS (macOS / Win / Linux)"]
+    end
+
+    subgraph "Entry & Control Layer (main.py)"
+        EP["Entry Point"]
+        EL["Root Elevation (osascript/pkexec)"]
+        FD["Frozen Detection (sys.frozen)"]
     end
 
     subgraph "Telemetry Layer (telemetry/)"
         DD["Device Discovery<br/>(device_detector.py)"]
-        NC["Native Apple Telemetry<br/>(mac_nvme.c)"]
-        SR["Unified Orchestration<br/>(smart_reader.py)"]
+        NC["Native C Bridge<br/>(mac_nvme.c)"]
+        SR["Unified Driver<br/>(smart_reader.py)"]
         SC["SMART Fallback<br/>(smartctl)"]
-        PF["Performance Simulation<br/>(performance_fallback.py)"]
     end
 
-    subgraph "ML Pipeline (core/ & models/)"
-        FE["Feature Transformation<br/>(feature_engineering.py)"]
-        HS["Health Score Fusion<br/>(health_score.py)"]
-        RE["Actionable Recommendations<br/>(recommendation_engine.py)"]
-        Models["Predictive Inference<br/>(ML Models)"]
+    subgraph "AI Engine (core/ & models/)"
+        FE["Feature Engineering"]
+        AE["AI Diagnostics<br/>(XGBoost / Random Forest)"]
+        HS["Health Score Fusion"]
+        RE["Recommendation Engine"]
     end
 
     subgraph "UI Layer (dashboard/)"
-        App["Health Dashboard<br/>(app.py)"]
-        Monitor["Real-time Monitoring<br/>(Monitoring Loop)"]
+        App["NANDGuard+ Dashboard<br/>(PyQt6)"]
+        MW["Telemetry Worker<br/>(Background Thread)"]
+        Tray["System Tray Service"]
     end
 
-    SSD --> DD
-    OS --> DD
+    OS --> EP
+    EP --> EL
+    EL --> FD
+    FD --> App
+
+    App --> MW
+    MW --> DD
     DD --> SR
     SR --> NC
     SR --> SC
-    SR --> PF
+
     NC --> FE
     SC --> FE
-    PF --> FE
-    FE --> HS
-    FE --> Models
-    Models --> HS
+
+    FE --> AE
+    AE --> HS
     HS --> RE
     RE --> App
-    App --> Monitor
-    Monitor --> DD
+    App --> Tray
 ```
 
 ## Component Breakdown
 
-### 1. Telemetry Layer
+### 1. Entry & Elevation Layer (`main.py`)
 
-- **Native Apple Telemetry (`mac_nvme.c`)**:
-  - **IOKit Integration**: Communicates directly with the macOS I/O Registry using the `IOKit` framework to target `AppleANS3NVMeController` and `IONVMeBlockStorageDevice` services.
-  - **Direct Memory Access**: Attempts to retrieve the raw 512-byte NVMe SMART Log Page directly from the kernel-level "SMART Data" property, bypassing the need for external CLI parsing.
-  - **Kernel Stats Fallback**: If hardware SMART data is restricted, it queries the `IOBlockStorageDriver` for native `Statistics` (raw Bytes Read/Written), ensuring high-fidelity telemetry even under strict security policies.
-- **Device Discovery (`device_detector.py`)**: Uses `smartctl --scan` and `psutil` to identify physical drives and their native paths (e.g., `/dev/disk0` or `/dev/sda`).
-- **Unified Orchestration (`smart_reader.py`)**: Prioritizes the **Native C Bridge** for Apple Silicon, falls back to `smartctl -a` (handling macOS-specific warning codes), and triggers the **Synthetic Simulator** if no hardware is accessible.
-- **performance_fallback.py**: Collects OS-level performance metrics as a backup in case hardware-level SMART data is unavailable.
+- **Root Authorization**: NANDGuard+ requires administrative privileges for low-level hardware access. `main.py` implements a secure elevation flow using `osascript` (macOS) or `pkexec` (Linux) to prompt the user for credentials at startup.
+- **Environment Management**: Detects if the application is running in a **frozen** state (bundled .app/.exe) and bypasses development environment checks to ensure instant launch performance.
 
-### 2. ML Pipeline & Core Logic
+### 2. Telemetry Layer
 
-- **feature_engineering.py**: Transforms raw SMART attributes (Temperature, Wear Level, Host Writes) into optimized features for ML inference.
-- **ML Models**:
-  - **RUL Model**: Predicts Remaining Useful Life in days (XGBoost).
-  - **Classifier**: Categorizes health status (Healthy, Degrading, Critical) (RandomForest).
-  - **Anomaly Detector**: Flags sub-optimal operating conditions (IsolationForest).
-- **health_score.py**: Computes a final weighted health percentage by fusing results from the classifier, RUL, and wear-level metrics.
-- **recommendation_engine.py**: Generates actionable advice based on health trends and detected anomalies.
+- **Native C Bridge (`mac_nvme.c`)**: Communicates directly with Apple's IOKit registry to extract 512-byte SMART log pages from internal NVMe controllers, bypassing user-space limitations.
+- **Device Discovery**: Dynamically identifies physical disks using a combination of `smartctl --scan` and `psutil`, ensuring hot-plugged devices are tracked.
+- **Unified Driver (`smart_reader.py`)**: A multi-stage orchestration script that prioritizes Native C telemetry, falls back to `smartctl`, and handles macOS-specific SMART warning codes (e.g., Code 4).
 
-### 3. Dashboard UI
+### 3. AI & Core Logic
 
-- **app.py**: A professional Tkinter-based dashboard designed for cross-platform stability. It features a thread-safe monitoring loop using `root.after()` to ensure responsive updates without interfering with the GUI event loop.
+- **Predictive Inference**: Uses pre-trained XGBoost and Scikit-Learn models to calculate:
+  - **Remaining Useful Life (RUL)**: Estimated days of operation left.
+  - **Health Classification**: Categorizing drives into Healthy, Degrading, or Critical states.
+- **Health Fusion**: Combines binary metrics (Temperature, Wear Level) with ML predictions to generate a single "Health Gauge" percentage (0-100%).
+
+### 4. UI Layer (PyQt6 Dashboard)
+
+- **Threaded Monitoring**: Telemetry is offloaded to a `TelemetryWorker` thread to keep the UI buttery smooth while intensive I/O operations occur in the background.
+- **Enterprise Dark UI**: A high-fidelity, sidebar-based interface with interactive health gauges and clickable device cards.
+- **System Tray Persistence**: NANDGuard+ runs as a background service in the system tray, providing persistent monitoring and native OS notifications for critical alerts.
+
+### 5. Distribution Layer
+
+- **Cross-Platform Bundling**: Utilizes custom PyInstaller `.spec` logic to bundle dynamic libraries (`libxgboost.dylib`) and system frameworks directly into standalone installers:
+  - **macOS**: Drag-to-install `.dmg` with LaunchAgent support.
+  - **Windows**: Wizard-based setup via **Inno Setup**.
+  - **Linux**: Standard `.deb` packaging.

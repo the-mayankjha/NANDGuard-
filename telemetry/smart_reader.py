@@ -11,8 +11,8 @@ def parse_smart_output(device_path, dev_type=None):
         native_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "native", "mac_nvme")
         if os.path.exists(native_path):
             try:
-                # Native bridge requires sudo just like smartctl
-                res = subprocess.run(['sudo', native_path], capture_output=True, text=True)
+                # App is elevated at main.py, no need for internal sudo
+                res = subprocess.run([native_path], capture_output=True, text=True)
                 if res.returncode == 0:
                     metrics = json.loads(res.stdout)
                     if "error" not in metrics:
