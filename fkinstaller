@@ -35,74 +35,70 @@ if [[ "$1" == "build" && "$2" == "nandguard" ]]; then
         echo "🍎 macOS binary already found in dist/nandguard/mac/"
     fi
 
-    # 2. Linux Binary
-    if [ ! -f "dist/nandguard/linux/NANDGuard+" ]; then
-        echo "🐧 Building Linux binary..."
-        pyinstaller packaging/nandguard.spec --distpath dist/nandguard/linux --noconfirm > /dev/null 2>&1
-    else
-        echo "🐧 Linux binary already found in dist/nandguard/linux/"
-    fi
-
-    # 3. Windows Binary
-    if [ ! -d "dist/nandguard/windows/NANDGuard+" ]; then
-        echo "🪟 Building Windows binary..."
-        pyinstaller packaging/nandguard_windows.spec --distpath dist/nandguard/windows --noconfirm > /dev/null 2>&1
-    else
-        echo "🪟 Windows binary already found in dist/nandguard/windows/"
-    fi
-
-    echo "✅ Binary Build Phase Complete."
-    echo ""
-
-    # --- Phase 2: Packaging ---
-    echo "📦 Phase 2/2: Packaging..."
-
-    # 1. macOS Packaging
-    echo "🍎 Packaging for macOS..."
-    if [ -d "dist/nandguard/mac/NANDGuard+.app" ]; then
-        if command -v hdiutil >/dev/null 2>&1; then
-            bash packaging/macos/create_dmg.sh "$NEW_VERSION"
-            echo "✅ macOS DMG created in drivers/macos/"
-        else
-            echo "⚠️  hdiutil not found. Zipping macOS binary instead..."
-            mkdir -p drivers/macos
-            zip -r "drivers/macos/NANDGuard+_mac_${NEW_VERSION}.zip" dist/nandguard/mac/ > /dev/null
-            echo "✅ macOS ZIP created in drivers/macos/"
-        fi
-    else
-        echo "❌ macOS binary missing. Skipping packaging."
-    fi
-
-    # 2. Linux Packaging
-    echo "🐧 Packaging for Linux..."
-    if [ -f "dist/nandguard/linux/NANDGuard+" ]; then
-        if command -v dpkg-deb >/dev/null 2>&1; then
-            bash packaging/linux/build_deb.sh "$NEW_VERSION"
+    # 2. Linux Binary & Packaging
+    echo "🐧 Building & Packaging for Linux..."
+    if [[ "$OSTYPE" == "darwin"* ]] && command -v docker >/dev/null 2>&1; then
+        echo "🐳 Docker detected. Building Linux .deb inside container..."
+        docker build -t nandguard-builder-linux -f packaging/linux/Dockerfile . --quiet
+        docker run --rm -v "$(pwd):/src" -e VERSION="$NEW_VERSION" nandguard-builder-linux
+        if [ $? -eq 0 ]; then
             echo "✅ Linux DEB created in drivers/linux/"
         else
-            echo "⚠️  dpkg-deb not found. Zipping Linux binary instead..."
-            mkdir -p drivers/linux
-            zip -r "drivers/linux/nandguard-plus_linux_${NEW_VERSION}.zip" dist/nandguard/linux/ > /dev/null
-            echo "✅ Linux ZIP created in drivers/linux/"
+            echo "❌ Linux Docker build failed."
         fi
     else
-        echo "❌ Linux binary missing. Skipping packaging."
+        # Fallback to local build logic
+        if [ ! -f "dist/nandguard/linux/NANDGuard+" ]; then
+            echo "🐧 Building Linux binary locally..."
+            pyinstaller packaging/nandguard.spec --distpath dist/nandguard/linux --noconfirm > /dev/null 2>&1
+        fi
+        
+        if [ -f "dist/nandguard/linux/NANDGuard+" ]; then
+            if command -v dpkg-deb >/dev/null 2>&1; then
+                bash packaging/linux/build_deb.sh "$NEW_VERSION"
+                echo "✅ Linux DEB created in drivers/linux/"
+            else
+                echo "⚠️  dpkg-deb not found. Zipping Linux binary instead..."
+                mkdir -p drivers/linux
+                zip -r "drivers/linux/nandguard-plus_linux_${NEW_VERSION}.zip" dist/nandguard/linux/ > /dev/null
+                echo "✅ Linux ZIP created in drivers/linux/"
+            fi
+        else
+            echo "❌ Linux binary missing. Skipping packaging."
+        fi
     fi
 
-    # 3. Windows Packaging
-    echo "🪟 Packaging for Windows..."
-    if [ -d "dist/nandguard/windows/NANDGuard+" ]; then
-        if command -v iscc >/dev/null 2>&1; then
-            iscc /DAppVersion="$NEW_VERSION" packaging/windows/nandguard_installer.iss
-            echo "✅ Windows EXE created in drivers/windows/"
+    # 3. Windows Binary & Packaging
+    echo "🪟 Building & Packaging for Windows..."
+    if [[ "$OSTYPE" == "darwin"* ]] && command -v docker >/dev/null 2>&1; then
+        echo "🐳 Docker detected. Building Windows .exe inside container..."
+        docker build -t nandguard-builder-windows -f packaging/windows/Dockerfile . --quiet
+        docker run --rm -v "$(pwd):/src" -e VERSION="$NEW_VERSION" nandguard-builder-windows
+        if [ $? -eq 0 ]; then
+            echo "✅ Windows EXE/ZIP created in drivers/windows/"
         else
-            echo "⚠️  Inno Setup (iscc) not found. Zipping Windows binary instead..."
-            mkdir -p drivers/windows
-            zip -r "drivers/windows/NANDGuard+_windows_${NEW_VERSION}.zip" dist/nandguard/windows/ > /dev/null
-            echo "✅ Windows ZIP created in drivers/windows/"
+            echo "❌ Windows Docker build failed."
         fi
     else
-        echo "❌ Windows binary missing. Skipping packaging."
+        # Fallback to local build logic
+        if [ ! -d "dist/nandguard/windows/NANDGuard+" ]; then
+            echo "🪟 Building Windows binary locally..."
+            pyinstaller packaging/nandguard_windows.spec --distpath dist/nandguard/windows --noconfirm > /dev/null 2>&1
+        fi
+
+        if [ -d "dist/nandguard/windows/NANDGuard+" ]; then
+            if command -v iscc >/dev/null 2>&1; then
+                iscc /DAppVersion="$NEW_VERSION" packaging/windows/nandguard_installer.iss
+                echo "✅ Windows EXE created in drivers/windows/"
+            else
+                echo "⚠️  Inno Setup (iscc) not found. Zipping Windows binary instead..."
+                mkdir -p drivers/windows
+                zip -r "drivers/windows/NANDGuard+_windows_${NEW_VERSION}.zip" dist/nandguard/windows/ > /dev/null
+                echo "✅ Windows ZIP created in drivers/windows/"
+            fi
+        else
+            echo "❌ Windows binary missing. Skipping packaging."
+        fi
     fi
 
     # Update the version file only if at least one build step succeeded
