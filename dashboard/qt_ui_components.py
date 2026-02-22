@@ -88,34 +88,40 @@ class DeviceCard(QFrame):
         
         # Professional Disk Indicator with Icon
         self.icon_frame = QFrame()
-        self.icon_frame.setFixedSize(36, 36)
+        self.icon_frame.setFixedSize(48, 48)
         self.icon_frame.setStyleSheet("""
             QFrame {
                 background-color: #2c313a;
-                border-radius: 18px;
+                border-radius: 24px;
                 border: 1px solid #3e4451;
             }
         """)
         icon_inner_layout = QVBoxLayout(self.icon_frame)
         icon_inner_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Disk Icon using logo.png
+        # Disk Icon logic: Logo for SMART, CD for non-SMART
         self.disk_icon = QLabel()
+        has_smart = dev_data.get('has_smart', False)
         logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
-        if os.path.exists(logo_path):
-            pixmap = QPixmap(logo_path).scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        
+        if not has_smart:
+            self.disk_icon.setText("📀")
+            self.disk_icon.setStyleSheet("font-size: 24px; background: transparent; border: none;")
+        elif os.path.exists(logo_path):
+            pixmap = QPixmap(logo_path).scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             self.disk_icon.setPixmap(pixmap)
         else:
             self.disk_icon.setText("💿")
-            self.disk_icon.setStyleSheet("font-size: 18px; background: transparent; border: none;")
+            self.disk_icon.setStyleSheet("font-size: 24px; background: transparent; border: none;")
         
         icon_inner_layout.addWidget(self.disk_icon, 0, Qt.AlignmentFlag.AlignCenter)
         
-        # Status Dot Overlay
+        # Status Dot Overlay (Positioned for 48x48 frame)
         self.icon_dot = QLabel(self.icon_frame)
-        self.icon_dot.setFixedSize(8, 8)
-        self.icon_dot.move(24, 24)
-        self.icon_dot.setStyleSheet(f"background-color: {'#00ffff' if 'bar_color' not in locals() else bar_color}; border-radius: 4px; border: 1px solid #21252b;")
+        self.icon_dot.setFixedSize(10, 10)
+        self.icon_dot.move(34, 34)
+        dot_color = '#00ffff' if health_score > 75 else '#ffaa00' if health_score > 40 else '#ff3c3c'
+        self.icon_dot.setStyleSheet(f"background-color: {dot_color}; border-radius: 5px; border: 1px solid #21252b;")
         
         info_layout = QVBoxLayout()
         info_layout.setSpacing(2)
