@@ -2,7 +2,8 @@
 
 NANDGuard is an AI-powered storage health monitoring system designed to simulate enterprise-grade SSD predictive maintenance. Built with a modular architecture, it combines hardware telemetry, machine learning, and a real-time dashboard to provide actionable health insights.
 
-<img width="898" height="721" alt="image" src="https://github.com/user-attachments/assets/e1c0a4f7-3b67-488c-9f45-e30c7a13f178" />
+<img width="898" height="627" alt="image" src="https://github.com/user-attachments/assets/b0cee464-c5fe-462c-818e-9014e451c13e" />
+
 
 
 ## ✨ Key Features
@@ -21,6 +22,9 @@ NANDGuard follows a modular pipeline:
 2. **Core Engine**: Performs feature engineering and generates a composite health score (0-100).
 3. **ML Layer**: Utilizes pre-trained XGBoost, RandomForest, and IsolationForest models.
 4. **Dashboard**: Unified interface for data visualization and continuous monitoring.
+
+<img width="1710" height="1072" alt="image" src="https://github.com/user-attachments/assets/4a86c296-314f-4326-a4a6-25238a67ed9b" />
+
 
 ## ⚙️ Installation Guide
 
