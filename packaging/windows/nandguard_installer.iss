@@ -4,14 +4,14 @@
 [Setup]
 AppId={{D3F4B5E6-81CE-44CA-9D92-0CAA5FF84F4C}
 AppName=NANDGuard+
-AppVersion=1.0.0
+AppVersion={#AppVersion}
 AppPublisher=NANDGuard Team
 DefaultDirName={autopf}\NANDGuard+
 DefaultGroupName=NANDGuard+
 AllowNoIcons=yes
 ; Require admin for service registration
 PrivilegesRequired=admin
-OutputDir=dist
+OutputDir=..\..\drivers\windows
 OutputBaseFilename=NANDGuard+_Setup
 Compression=lzma
 SolidCompression=yes
@@ -28,7 +28,7 @@ Name: "startupshortcut"; Description: "Launch NANDGuard+ on system startup"; Gro
 
 [Files]
 ; The main application built by PyInstaller
-Source: "dist\NANDGuard+\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\dist\nandguard\windows\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Icons and assets
 Source: "icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 

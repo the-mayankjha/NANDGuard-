@@ -4,7 +4,7 @@ NANDGuard+ is a professional AI-powered storage health utility. Follow the instr
 
 ## 🍎 macOS
 
-1. **Download**: Obtain the `NANDGuard+_1.0.0.dmg` file.
+1. **Download**: Obtain the `NANDGuard+_1.0.0.dmg` file from the `drivers/macos/` directory.
 2. **Mount**: Double-click the `.dmg` file to open it.
 3. **Install**: Drag the **NANDGuard+** icon into the **Applications** folder link.
 4. **Launch**: Open NANDGuard+ from your Applications folder.
@@ -15,14 +15,14 @@ NANDGuard+ is a professional AI-powered storage health utility. Follow the instr
 
 ## 🪟 Windows
 
-1. **Download**: Obtain the `NANDGuard+_Setup.exe` installer.
+1. **Download**: Obtain the `NANDGuard+_Setup.exe` installer from the `drivers/windows/` directory.
 2. **Run**: Double-click the installer and follow the on-screen wizard.
 3. **Permissions**: Grant administrative privileges when prompted to allow the background service to register.
 4. **Launch**: NANDGuard+ will create a desktop shortcut and a Start Menu entry. The background monitoring service starts automatically.
 
 ## 🐧 Linux (Debian/Ubuntu)
 
-1. **Download**: Obtain the `nandguard-plus_1.0.0_amd64.deb` package.
+1. **Download**: Obtain the `nandguard-plus_1.0.0_amd64.deb` package from the `drivers/linux/` directory.
 2. **Install**: Run the following command in your terminal:
    ```bash
    sudo dpkg -i nandguard-plus_1.0.0_amd64.deb
@@ -45,16 +45,16 @@ To build the standalone executable for your platform from source:
 
 ### 🍎 macOS
 
-1. Build the app: `pyinstaller packaging/nandguard.spec`
+1. Build the app: `pyinstaller packaging/nandguard.spec --distpath dist/nandguard/mac --noconfirm`
 2. Create the DMG: `bash packaging/macos/create_dmg.sh`
 
 ### 🪟 Windows
 
 1. Install Python 3.13 and dependencies: `pip install -r requirements.txt`
-2. Build the EXE: `pyinstaller packaging/nandguard_windows.spec`
+2. Build the EXE: `pyinstaller packaging/nandguard_windows.spec --distpath dist/nandguard/windows --noconfirm`
 3. Create the Installer: Open `packaging/windows/nandguard_installer.iss` in **Inno Setup** and click 'Compile'.
 
 ### 🐧 Linux
 
-1. Build the binary: `pyinstaller packaging/nandguard.spec`
+1. Build the binary: `pyinstaller packaging/nandguard.spec --distpath dist/nandguard/linux --noconfirm`
 2. Create the DEB: `bash packaging/linux/build_deb.sh`

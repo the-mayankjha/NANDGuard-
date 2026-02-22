@@ -1,0 +1,116 @@
+#!/bin/bash
+
+# NANDGuard+ Unified Build System (FkInstaller)
+VERSION_FILE="VERSION"
+
+# Initialize version file if it doesn't exist
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "1.0.0" > "$VERSION_FILE"
+fi
+
+CURRENT_VERSION=$(cat "$VERSION_FILE" | xargs)
+
+# Function to increment SemVer (patch version)
+increment_version() {
+    local v=$1
+    IFS='.' read -r major minor patch <<< "$v"
+    patch=$((patch + 1))
+    echo "${major}.${minor}.${patch}"
+}
+
+if [[ "$1" == "build" && "$2" == "nandguard" ]]; then
+    NEW_VERSION=$(increment_version "$CURRENT_VERSION")
+    echo "------------------------------------------"
+    echo "🚀 Building NANDGuard+ v${NEW_VERSION}"
+    echo "------------------------------------------"
+
+    # --- Phase 1: Binary Building ---
+    echo "🏗️ Phase 1/2: Building Binaries..."
+
+    # 1. macOS Binary
+    if [ ! -d "dist/nandguard/mac/NANDGuard+.app" ]; then
+        echo "🍎 Building macOS binary..."
+        pyinstaller packaging/nandguard.spec --distpath dist/nandguard/mac --noconfirm > /dev/null 2>&1
+    else
+        echo "🍎 macOS binary already found in dist/nandguard/mac/"
+    fi
+
+    # 2. Linux Binary
+    if [ ! -f "dist/nandguard/linux/NANDGuard+" ]; then
+        echo "🐧 Building Linux binary..."
+        pyinstaller packaging/nandguard.spec --distpath dist/nandguard/linux --noconfirm > /dev/null 2>&1
+    else
+        echo "🐧 Linux binary already found in dist/nandguard/linux/"
+    fi
+
+    # 3. Windows Binary
+    if [ ! -d "dist/nandguard/windows/NANDGuard+" ]; then
+        echo "🪟 Building Windows binary..."
+        pyinstaller packaging/nandguard_windows.spec --distpath dist/nandguard/windows --noconfirm > /dev/null 2>&1
+    else
+        echo "🪟 Windows binary already found in dist/nandguard/windows/"
+    fi
+
+    echo "✅ Binary Build Phase Complete."
+    echo ""
+
+    # --- Phase 2: Packaging ---
+    echo "📦 Phase 2/2: Packaging..."
+
+    # 1. macOS Packaging
+    echo "🍎 Packaging for macOS..."
+    if [ -d "dist/nandguard/mac/NANDGuard+.app" ]; then
+        if command -v hdiutil >/dev/null 2>&1; then
+            bash packaging/macos/create_dmg.sh "$NEW_VERSION"
+            echo "✅ macOS DMG created in drivers/macos/"
+        else
+            echo "⚠️  hdiutil not found. Zipping macOS binary instead..."
+            mkdir -p drivers/macos
+            zip -r "drivers/macos/NANDGuard+_mac_${NEW_VERSION}.zip" dist/nandguard/mac/ > /dev/null
+            echo "✅ macOS ZIP created in drivers/macos/"
+        fi
+    else
+        echo "❌ macOS binary missing. Skipping packaging."
+    fi
+
+    # 2. Linux Packaging
+    echo "🐧 Packaging for Linux..."
+    if [ -f "dist/nandguard/linux/NANDGuard+" ]; then
+        if command -v dpkg-deb >/dev/null 2>&1; then
+            bash packaging/linux/build_deb.sh "$NEW_VERSION"
+            echo "✅ Linux DEB created in drivers/linux/"
+        else
+            echo "⚠️  dpkg-deb not found. Zipping Linux binary instead..."
+            mkdir -p drivers/linux
+            zip -r "drivers/linux/nandguard-plus_linux_${NEW_VERSION}.zip" dist/nandguard/linux/ > /dev/null
+            echo "✅ Linux ZIP created in drivers/linux/"
+        fi
+    else
+        echo "❌ Linux binary missing. Skipping packaging."
+    fi
+
+    # 3. Windows Packaging
+    echo "🪟 Packaging for Windows..."
+    if [ -d "dist/nandguard/windows/NANDGuard+" ]; then
+        if command -v iscc >/dev/null 2>&1; then
+            iscc /DAppVersion="$NEW_VERSION" packaging/windows/nandguard_installer.iss
+            echo "✅ Windows EXE created in drivers/windows/"
+        else
+            echo "⚠️  Inno Setup (iscc) not found. Zipping Windows binary instead..."
+            mkdir -p drivers/windows
+            zip -r "drivers/windows/NANDGuard+_windows_${NEW_VERSION}.zip" dist/nandguard/windows/ > /dev/null
+            echo "✅ Windows ZIP created in drivers/windows/"
+        fi
+    else
+        echo "❌ Windows binary missing. Skipping packaging."
+    fi
+
+    # Update the version file only if at least one build step succeeded
+    echo "$NEW_VERSION" > "$VERSION_FILE"
+    echo "------------------------------------------"
+    echo "✅ NANDGuard+ v${NEW_VERSION} Build Process Complete!"
+    echo "------------------------------------------"
+else
+    echo "Usage: ./fkinstaller build nandguard"
+    exit 1
+fi

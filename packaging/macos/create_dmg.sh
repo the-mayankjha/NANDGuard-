@@ -4,16 +4,18 @@
 # Uses hdiutil (native macOS) to create a professional drag-and-drop DMG
 
 APP_NAME="NANDGuard+"
-VERSION="1.0.0"
+VERSION="${1:-1.0.0}"
 DMG_NAME="${APP_NAME}_${VERSION}.dmg"
-APP_BUNDLE="dist/${APP_NAME}.app"
+APP_BUNDLE="dist/nandguard/mac/${APP_NAME}.app"
 STAGING_DIR="packaging/macos/dmg_staging"
+DRIVERS_DIR="drivers/macos"
 
 echo "Creating Professional DMG for ${APP_NAME}..."
 
 # 1. Cleanup
 rm -rf "$STAGING_DIR"
-rm -f "$DMG_NAME"
+mkdir -p "$DRIVERS_DIR"
+rm -f "$DRIVERS_DIR/$DMG_NAME"
 mkdir -p "$STAGING_DIR"
 
 # 2. Copy App
@@ -34,7 +36,7 @@ hdiutil create -volname "${APP_NAME} Installer" -srcfolder "$STAGING_DIR" -ov -f
 
 # 5. Finalize DMG (Compressed and Read-Only)
 echo "Finalizing DMG..."
-hdiutil convert "packaging/macos/raw.dmg" -format UDZO -o "$DMG_NAME"
+hdiutil convert "packaging/macos/raw.dmg" -format UDZO -o "$DRIVERS_DIR/$DMG_NAME"
 rm "packaging/macos/raw.dmg"
 
 echo "Professional DMG created: $DMG_NAME"

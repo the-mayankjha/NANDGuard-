@@ -2,7 +2,7 @@
 
 # NANDGuard+ Linux .deb Build Script
 PACKAGE_NAME="nandguard-plus"
-VERSION="1.0.0"
+VERSION="${1:-1.0.0}"
 ARCH="amd64"
 BUILD_DIR="packaging/linux/deb_build"
 
@@ -27,11 +27,11 @@ Description: AI-Powered Storage Health Monitor
  failure prediction for NAND storage devices.
 EOF
 
-# 3. Copy files (assuming build is in dist/nandguard-plus)
-if [ -f "dist/NANDGuard+" ]; then
-    cp "dist/NANDGuard+" $BUILD_DIR/usr/bin/nandguard-plus
+# 3. Copy files (assuming build is in dist/nandguard/linux)
+if [ -f "dist/nandguard/linux/NANDGuard+" ]; then
+    cp "dist/nandguard/linux/NANDGuard+" $BUILD_DIR/usr/bin/nandguard-plus
 else
-    echo "Error: Binary dist/NANDGuard+ not found."
+    echo "Error: Binary dist/nandguard/linux/NANDGuard+ not found."
     exit 1
 fi
 
@@ -39,6 +39,8 @@ cp "packaging/linux/nandguard-plus.desktop" $BUILD_DIR/usr/share/applications/
 # cp "dashboard/icon.png" $BUILD_DIR/usr/share/pixmaps/nandguard-plus.png
 
 # 4. Build package
-dpkg-deb --build $BUILD_DIR "${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"
+DRIVERS_DIR="drivers/linux"
+mkdir -p "$DRIVERS_DIR"
+dpkg-deb --build $BUILD_DIR "$DRIVERS_DIR/${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"
 
-echo "Package built: ${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"
+echo "Package built: $DRIVERS_DIR/${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"
