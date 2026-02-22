@@ -36,7 +36,7 @@ class NANDGuardApp(QMainWindow):
         # Sidebar
         self.sidebar = QWidget()
         self.sidebar.setFixedWidth(200)
-        self.sidebar.setStyleSheet("background-color: #21252b; border-right: 1px solid #3e4451;")
+        self.sidebar.setStyleSheet("background-color: #21252b; border: none;")
         sidebar_layout = QVBoxLayout(self.sidebar)
         sidebar_layout.setContentsMargins(10, 20, 10, 20)
         
@@ -49,6 +49,35 @@ class NANDGuardApp(QMainWindow):
         sidebar_layout.addWidget(self.btn_settings)
         sidebar_layout.addStretch()
         
+        # Sidebar Footer (Bottom Centered)
+        self.footer = QWidget()
+        self.footer.setStyleSheet("margin-top: 10px; padding-top: 15px;")
+        footer_layout = QVBoxLayout(self.footer)
+        footer_layout.setContentsMargins(0, 10, 0, 0)
+        footer_layout.setSpacing(2)
+        
+        lbl_app_name = QLabel("NANDGuard+")
+        lbl_app_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_app_name.setStyleSheet("font-weight: bold; color: #ffffff; font-size: 14px; border: none; background: transparent;")
+        
+        version_num = "1.0.3"
+        try:
+            version_path = os.path.join(project_root, "VERSION")
+            if os.path.exists(version_path):
+                with open(version_path, "r") as f:
+                    version_num = f.read().strip()
+        except:
+            pass
+            
+        lbl_version = QLabel(f"v{version_num}")
+        lbl_version.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_version.setStyleSheet("color: #636d83; font-size: 11px; border: none; background: transparent;")
+        
+        footer_layout.addWidget(lbl_app_name)
+        footer_layout.addWidget(lbl_version)
+        
+        sidebar_layout.addWidget(self.footer)
+        
         main_layout.addWidget(self.sidebar)
         
         # Content Area
@@ -60,7 +89,7 @@ class NANDGuardApp(QMainWindow):
         # Style
         self.setStyleSheet("""
             QMainWindow { background-color: #282c34; }
-            QLabel { color: #abb2bf; font-family: 'Segoe UI', Arial; }
+            QLabel { color: #abb2bf; font-family: .AppleSystemUIFont, BlinkMacSystemFont, sans-serif; }
         """)
 
         # Start Telemetry Worker
@@ -215,22 +244,24 @@ class NANDGuardApp(QMainWindow):
         self.lbl_updated.setText(f"Last Scan: {time.strftime('%H:%M:%S')}")
 
     def closeEvent(self, event):
-        # Minimize to tray instead of closing
-        if tray_icon.isVisible():
-            self.hide()
-            event.ignore()
-        else:
-            self.worker.stop()
-            event.accept()
+        """Handle window close event: stop background tasks and exit."""
+        self.worker.stop()
+        
+        # Hide the tray icon explicitly if it exists
+        if 'tray_icon' in globals() and tray_icon:
+            tray_icon.hide()
+            
+        event.accept()
+        QApplication.quit()
 
 def run_app():
     app = QApplication(sys.argv)
-    app.setQuitOnLastWindowClosed(False)
+    app.setQuitOnLastWindowClosed(True)
     
     # Style
     app.setStyleSheet("""
         QMainWindow { background-color: #1c1f24; }
-        QWidget { color: #abb2bf; font-family: 'Inter', 'Segoe UI', Arial; }
+        QWidget { color: #abb2bf; font-family: .AppleSystemUIFont, BlinkMacSystemFont, sans-serif; }
         
         /* Sidebar Styles */
         #Sidebar { background-color: #21252b; border-right: 1px solid #181a1f; }

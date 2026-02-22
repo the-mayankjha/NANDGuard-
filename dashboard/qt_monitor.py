@@ -93,6 +93,7 @@ class TelemetryWorker(QThread):
                                 'status': status_pred,
                                 'anomaly': anomaly,
                                 'recommendations': recs,
+                                'has_smart': True,
                                 'source': f"LIVE ({metrics.get('Source', 'Hardware')})"
                             }
                             results.append(dev_data)

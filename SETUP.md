@@ -103,3 +103,60 @@ python models/train_anomaly.py
 | **Linux**   | `Permission Denied`  | Always run `main.py` with `sudo`.                        |
 | **Windows** | `smartctl` not found | Add `C:\Program Files\smartmontools\bin` to System PATH. |
 | **All**     | Error Loading Models | Ensure you ran the Training scripts first.               |
+| **Build**   | `pyinstaller` Error  | Ensure `venv` is active and requirements are installed.  |
+
+---
+
+## 🛠️ Packaging & Distribution
+
+NANDGuard+ uses a unified build system to generate installers for multiple platforms.
+
+### 1. Automated (Recommended)
+
+Use the `./fkinstaller` script to automate binary compilation and packaging.
+
+| Command                                 | Result                                                |
+| :-------------------------------------- | :---------------------------------------------------- |
+| `./fkinstaller build nandguard mac`     | Generates `.app` (zip) and `.dmg` in `drivers/macos/` |
+| `./fkinstaller build nandguard linux`   | Generates `.deb` in `drivers/linux/`                  |
+| `./fkinstaller build nandguard windows` | Generates `.exe` in `drivers/windows/`                |
+| `./fkinstaller build nandguard all`     | Builds for all platforms sequentially                 |
+
+### 2. Manual Build Process
+
+If you prefer manual control or need to debug specific phases, follow these steps:
+
+####  macOS (DMG)
+
+1. **Build Binary**:
+   ```bash
+   venv/bin/pyinstaller packaging/nandguard.spec --distpath dist/nandguard/mac --noconfirm
+   ```
+2. **Create DMG**:
+   ```bash
+   bash packaging/macos/create_dmg.sh 1.0.8
+   ```
+
+#### 🐧 Linux (DEB)
+
+1. **Build Binary**:
+   ```bash
+   venv/bin/pyinstaller packaging/nandguard.spec --distpath dist/nandguard/linux --noconfirm
+   ```
+2. **Package DEB**:
+   ```bash
+   bash packaging/linux/build_deb.sh 1.0.8
+   ```
+
+#### 🪟 Windows (EXE)
+
+1. **Build Binary**:
+   ```powershell
+   .\venv\Scripts\pyinstaller packaging/nandguard_windows.spec --distpath dist/nandguard/windows --noconfirm
+   ```
+2. **Create Installer (Requires Inno Setup)**:
+   ```powershell
+   iscc /DAppVersion="1.0.8" packaging/windows/nandguard_installer.iss
+   ```
+
+---

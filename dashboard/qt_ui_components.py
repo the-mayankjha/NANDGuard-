@@ -86,42 +86,35 @@ class DeviceCard(QFrame):
         header = QHBoxLayout()
         header.setSpacing(12)
         
-        # Professional Disk Indicator with Icon
+        # Professional Disk Indicator with Icon (Borderless, Large)
         self.icon_frame = QFrame()
-        self.icon_frame.setFixedSize(48, 48)
-        self.icon_frame.setStyleSheet("""
-            QFrame {
-                background-color: #2c313a;
-                border-radius: 24px;
-                border: 1px solid #3e4451;
-            }
-        """)
+        self.icon_frame.setFixedSize(64, 64)
+        self.icon_frame.setStyleSheet("background: transparent; border: none;")
+        
         icon_inner_layout = QVBoxLayout(self.icon_frame)
         icon_inner_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Disk Icon logic: Logo for SMART, CD for non-SMART
+        # Disk Icon logic: logo.png for SMART+Health, CD for others (Upscaled)
         self.disk_icon = QLabel()
         has_smart = dev_data.get('has_smart', False)
+        has_health = 'health' in dev_data
         logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
         
-        if not has_smart:
-            self.disk_icon.setText("📀")
-            self.disk_icon.setStyleSheet("font-size: 24px; background: transparent; border: none;")
-        elif os.path.exists(logo_path):
-            pixmap = QPixmap(logo_path).scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        if has_smart and has_health and os.path.exists(logo_path):
+            pixmap = QPixmap(logo_path).scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             self.disk_icon.setPixmap(pixmap)
         else:
-            self.disk_icon.setText("💿")
-            self.disk_icon.setStyleSheet("font-size: 24px; background: transparent; border: none;")
+            self.disk_icon.setText("📀")
+            self.disk_icon.setStyleSheet("font-size: 40px; background: transparent; border: none;")
         
         icon_inner_layout.addWidget(self.disk_icon, 0, Qt.AlignmentFlag.AlignCenter)
         
-        # Status Dot Overlay (Positioned for 48x48 frame)
+        # Status Dot Overlay (Positioned for 64x64 frame)
         self.icon_dot = QLabel(self.icon_frame)
-        self.icon_dot.setFixedSize(10, 10)
-        self.icon_dot.move(34, 34)
+        self.icon_dot.setFixedSize(12, 12)
+        self.icon_dot.move(48, 48)
         dot_color = '#00ffff' if health_score > 75 else '#ffaa00' if health_score > 40 else '#ff3c3c'
-        self.icon_dot.setStyleSheet(f"background-color: {dot_color}; border-radius: 5px; border: 1px solid #21252b;")
+        self.icon_dot.setStyleSheet(f"background-color: {dot_color}; border-radius: 6px; border: 1.5px solid #21252b;")
         
         info_layout = QVBoxLayout()
         info_layout.setSpacing(2)
@@ -198,7 +191,7 @@ class SidebarButton(QFrame):
         # Professional Left Bar Indicator
         self.indicator_bar = QFrame()
         self.indicator_bar.setFixedWidth(4)
-        self.indicator_bar.setStyleSheet(f"background-color: {'#00ffff' if self.active else 'transparent'}; border-radius: 2px;")
+        self.indicator_bar.setStyleSheet(f"background-color: {'#00ffff' if self.active else 'transparent'}; border-radius: 2px; border: none;")
         
         self.text_label = QLabel(text)
         
@@ -226,7 +219,9 @@ class SidebarButton(QFrame):
                 color: {color};
                 font-weight: {"bold" if self.active else "normal"};
                 font-size: 13px;
+                border: none;
+                background: transparent;
             }}
         """)
         if hasattr(self, 'indicator_bar'):
-            self.indicator_bar.setStyleSheet(f"background-color: {'#00ffff' if self.active else 'transparent'}; border-radius: 2px;")
+            self.indicator_bar.setStyleSheet(f"background-color: {'#00ffff' if self.active else 'transparent'}; border-radius: 2px; border: none;")

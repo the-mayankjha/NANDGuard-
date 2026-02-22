@@ -63,8 +63,8 @@ class FlashSentinelApp:
             except Exception:
                 pass
 
-            font_main = ("Inter", 12) if "Inter" in self.root.tk.call("font", "families") else ("Helvetica", 12)
-            font_header = ("Inter", 32, "bold") if "Inter" in self.root.tk.call("font", "families") else ("Helvetica", 32, "bold")
+            font_main = ("Helvetica", 12)
+            font_header = ("Helvetica", 32, "bold")
             
             style.configure("TFrame", background="#222222")
             style.configure("TLabel", background="#222222", foreground="white", font=font_main)
@@ -82,7 +82,7 @@ class FlashSentinelApp:
         self.device_combo.bind("<<ComboboxSelected>>", lambda e: self.update_dashboard())
 
         # Score Display
-        self.score_label = ttk.Label(self.root, text="--%", font=("Inter", 48, "bold"), foreground="white")
+        self.score_label = ttk.Label(self.root, text="--%", font=("Helvetica", 48, "bold"), foreground="white")
         self.score_label.pack(pady=(40, 10))
         
         # Progress Bar
@@ -92,7 +92,7 @@ class FlashSentinelApp:
         # Recommendations Box
         self.recs_frame = tk.Frame(self.root, bg="#1a1a1a", bd=1, relief="flat")
         self.recs_frame.pack(fill="x", padx=40, pady=10)
-        self.recs_text = tk.Text(self.recs_frame, bg="#1a1a1a", fg="white", font=("Inter", 11), 
+        self.recs_text = tk.Text(self.recs_frame, bg="#1a1a1a", fg="white", font=("Helvetica", 11), 
                                 relief="flat", borderwidth=0, padx=20, pady=20, height=6)
         self.recs_text.pack(fill="x")
 
@@ -108,13 +108,13 @@ class FlashSentinelApp:
         self.status_label.grid(row=2, column=0, pady=5)
         self.anomaly_label = ttk.Label(stats_frame, text="Anomaly: --")
         self.anomaly_label.grid(row=3, column=0, pady=5)
-        self.source_label = ttk.Label(stats_frame, text="Source: --", font=("Inter", 10, "bold"))
+        self.source_label = ttk.Label(stats_frame, text="Source: --", font=("Helvetica", 10, "bold"))
         self.source_label.grid(row=4, column=0, pady=5)
 
-        self.error_log_label = ttk.Label(self.root, text="", font=("Inter", 9, "italic"), foreground="#ff4444")
+        self.error_log_label = ttk.Label(self.root, text="", font=("Helvetica", 9, "italic"), foreground="#ff4444")
         self.error_log_label.pack(pady=5)
         
-        self.last_update_label = ttk.Label(stats_frame, text="Update: --", font=("Inter", 10, "italic"), foreground="#888888")
+        self.last_update_label = ttk.Label(stats_frame, text="Update: --", font=("Helvetica", 10, "italic"), foreground="#888888")
         self.last_update_label.grid(row=5, column=0, pady=10)
 
         # Start continuous monitoring ONLY after everything is set up
