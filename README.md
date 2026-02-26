@@ -27,7 +27,61 @@ NANDGuard follows a modular pipeline:
 3. **ML Layer**: Utilizes pre-trained XGBoost, RandomForest, and IsolationForest models.
 4. **Dashboard**: Unified interface for data visualization and continuous monitoring.
 
-<img width="1710" height="1072" alt="image" src="https://github.com/user-attachments/assets/4a86c296-314f-4326-a4a6-25238a67ed9b" />
+
+
+```mermaid
+graph TD
+    subgraph "Hardware & OS Layer"
+        SSD["Storage Media (NVMe / SATA)"]
+        OS["OS (macOS / Win / Linux)"]
+    end
+
+    subgraph "Entry & Control Layer (main.py)"
+        EP["Entry Point"]
+        EL["Root Elevation (osascript/pkexec)"]
+        FD["Frozen Detection (sys.frozen)"]
+    end
+
+    subgraph "Telemetry Layer (telemetry/)"
+        DD["Device Discovery<br/>(device_detector.py)"]
+        NC["Native C Bridge<br/>(mac_nvme.c)"]
+        SR["Unified Driver<br/>(smart_reader.py)"]
+        SC["SMART Fallback<br/>(smartctl)"]
+    end
+
+    subgraph "AI Engine (core/ & models/)"
+        FE["Feature Engineering"]
+        AE["AI Diagnostics<br/>(XGBoost / Random Forest)"]
+        HS["Health Score Fusion"]
+        RE["Recommendation Engine"]
+    end
+
+    subgraph "UI Layer (dashboard/)"
+        App["NANDGuard+ Dashboard<br/>(PyQt6)"]
+        MW["Telemetry Worker<br/>(Background Thread)"]
+        Tray["System Tray Service"]
+    end
+
+    OS --> EP
+    EP --> EL
+    EL --> FD
+    FD --> App
+
+    App --> MW
+    MW --> DD
+    DD --> SR
+    SR --> NC
+    SR --> SC
+
+    NC --> FE
+    SC --> FE
+
+    FE --> AE
+    AE --> HS
+    HS --> RE
+    RE --> App
+    App --> Tray
+```
 
 
 ## ⚙️ Installation Guide
