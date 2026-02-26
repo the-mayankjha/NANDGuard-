@@ -2,8 +2,12 @@
 
 NANDGuard is an AI-powered storage health monitoring system designed to simulate enterprise-grade SSD predictive maintenance. Built with a modular architecture, it combines hardware telemetry, machine learning, and a real-time dashboard to provide actionable health insights.
 
-<img width="898" height="627" alt="image" src="https://github.com/user-attachments/assets/b0cee464-c5fe-462c-818e-9014e451c13e" />
 
+
+<img width="898" height="627" alt="image" src="https://github.com/user-attachments/assets/b0cee464-c5fe-462c-818e-9014e451c13e" />
+<p align="center">
+  <em>Figure 1. NANDGuard main dashboard </em>
+</p>
 
 
 ## ✨ Key Features
@@ -79,6 +83,31 @@ NANDGuard/
 ├── telemetry/          # Hardware discovery & SMART parsing
 └── venv/               # (Optional) Virtual environment
 ```
+
+## 📂 UI Design 
+<img width="1280" height="850" alt="image" src="https://github.com/user-attachments/assets/17f9f071-a35b-4105-86ba-69fe0758d047" />
+<p align="center">
+  <em>Figure 2.1. NANDGuard main dashboard </em>
+</p>
+<img width="1280" height="853" alt="image" src="https://github.com/user-attachments/assets/844380bd-4c38-4541-914d-b2f8355ea7fc" />
+<p align="center">
+  <em>Figure 2.2. Drive Details </em>
+</p>
+<img width="1280" height="858" alt="image" src="https://github.com/user-attachments/assets/0d5520ad-258b-4508-80c0-d0a5dc91560b" />
+<p align="center">
+  <em>Figure 2.3. Drive Diagnosis </em>
+</p>
+<img width="1280" height="853" alt="image" src="https://github.com/user-attachments/assets/8594f39c-c10a-4262-a683-9d4d925c64df" />
+<p align="center">
+  <em>Figure 2.4. History - Health Over Time </em>
+</p>
+<img width="1280" height="860" alt="image" src="https://github.com/user-attachments/assets/5b4ac085-587e-4d75-903e-5446a816b4ae" />
+<p align="center">
+  <em>Figure 2.5. </em>
+</p>
+
+
+
 
 ## ⚠️ Disclaimer
 
